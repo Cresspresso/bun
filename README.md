@@ -1,5 +1,9 @@
-# Bun
+# Bun Compiler
+
 The Bun Programming Language
 
-## Blog
-https://bun-lang.blogspot.com/
+Source-to-source compiler written in C++ that transpiles Bun to C++.
+
+## Links
+
+[Developer's Blog](https://github.com/Cresspresso/bun/blob/blog/README.md)
