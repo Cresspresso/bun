@@ -1,15 +1,4 @@
 
-/*
-// Decision Notes
-
-- API is a single function Lex which does everything.
-- char8_t used throughout, because unicode.
-- no TChar template types, because slow compile time.
-- functionality stored in Lexer implementation as semi-local variable shared between functions.
-- used to have callback arguments IReader, ILogger, and ITokenSubmitter, but that was abstracted away as ILexerFunctionality.
-
-*/
-
 #include <cstdio>
 #include <string_view>
 #include <memory>

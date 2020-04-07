@@ -1,11 +1,11 @@
 #pragma once
-/*
+/*md
 
 # lexer.h
 
-Author: Elijah Shadbolt
+Elijah Shadbolt
 
-Date: 06 Apr 2020
+6 April 2020
 
 ## Summary
 
