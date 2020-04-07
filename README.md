@@ -5,5 +5,5 @@ A programming langugage with emphasis on name binding and identifier resolution.
 
 ## Links
 
-- [Bun Compiler](./compiler/README.md)
+- [Bun Compiler](./compiler/)
 - [Developer's Blog](./blog/blog.md)
