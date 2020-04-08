@@ -5,7 +5,7 @@
 
 # Posts
 
-[First Post](./posts/2020-03-03-The-Beginning-of-Bun.md) • [Latest Post](./posts/2020-04-06-Lexer.md)
+[First Post](./posts/2020-03-03-The-Beginning-of-Bun.md) • [Latest Post](./posts/2020-04-08-Software-Design-Pillars.md)
 
 Latest posts are at the top.
 
