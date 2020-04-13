@@ -1,5 +1,5 @@
 
-[Previous](./2020-04-06-Lexer.md) • [All Posts](../posts.md) • ~~Next~~
+[Previous](./2020-04-06-Lexer.md) • [All Posts](../posts.md) • [Next](./2020-04-14-Given-Cpp-Features.md)
 
 8 April 2020
 

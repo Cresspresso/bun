@@ -5,7 +5,7 @@
 
 # Posts
 
-[First Post](./posts/2020-03-03-The-Beginning-of-Bun.md) • [Latest Post](./posts/2020-04-08-Software-Design-Pillars.md)
+[First Post](./posts/2020-03-03-The-Beginning-of-Bun.md) • [Latest Post](./posts/2020-04-14-Given-Cpp-Features.md)
 
 Latest posts are at the top.
 
@@ -13,6 +13,7 @@ Latest posts are at the top.
 
 ### April
 
+- [Given C++ Features](./posts/2020-04-14-Given-Cpp-Features.md)
 - [Lexer](./posts/2020-04-06-Lexer.md)
 - [Variable Binding](./posts/2020-04-01-Variable-Binding.md)
 

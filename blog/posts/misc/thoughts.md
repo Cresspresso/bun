@@ -3,7 +3,7 @@
 
 Elijah Shadbolt
 
-## Thoughts
+# Thoughts
 
 An object is a structure of data upon which specific valid operations can be performed.
 
