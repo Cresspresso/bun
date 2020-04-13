@@ -46,7 +46,11 @@ Either:
 	- using inherited overload...
 	- field...
 	- method...
-	- virtual method... (Either: abstract, virtual, override, final)
+	- virtual method... either:
+		* abstract
+		* virtual
+		* override
+		* final
 	- ctor/dtor...
 	- static variable...
 	- static function...
@@ -54,7 +58,7 @@ Either:
 	- type...
 - union
 	- (Either: concrete, template, or template specialization)
-		- template parameter...
+	- template parameter...
 	- ctor/dtor...
 - enum
 	- inherited integer type
@@ -73,6 +77,10 @@ Either:
 	* branch: if, else
 	* loop: while, for
 	* try-catch
+- flow control statement... either:
+	* return
+	* break
+	* continue
 
 ### Expression
 Either:
@@ -82,15 +90,20 @@ Either:
 - binary operator
 - unary operator
 - function call
-- lambda closure
+- lambda function closure
+	- capture clause
+		- captured variable...
+	- parameter...
+	- block
 
 ## Querks of C++
 - Reference semantics
 - Raw array semantics
 - Class lifetime semantics
-	- Rule of 5
+	- L-value and r-value references
 	- Perfect Forwarding of Arguments
 	- Return Value Copy Elision
+	- Rule of 5
 - Const Correctness for Methods
 - Noexcept Specifications for Functions
 - Member access permissions
