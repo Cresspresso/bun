@@ -21,18 +21,19 @@ Reads UTF-8 characters from a stream and transforms them to a sequence of tokens
 
 #include <string>
 #include <stdexcept>
+#include <functional>
 
 #include "interface.hpp"
 
 namespace Bun
 {
+	using Char = char8_t;
+	using String = std::u8string;
+
 	namespace Strings
 	{
-		using Char = char8_t;
-		using String = std::u8string;
-
-		std::string CharFromU8(Strings::String const& input);
-		Strings::String U8FromChar(std::string const& input);
+		std::string CharFromU8(String const& input);
+		String U8FromChar(std::string const& input);
 	}
 
 	class Exception : public std::runtime_error
@@ -46,96 +47,115 @@ namespace Bun
 		Exception(std::string const& msg) : Super(msg) {}
 	};
 
-	namespace Lexing
+	String GetDefaultExceptionMessage();
+
+	enum class LogSeverity
 	{
-		using Bun::Strings::Char;
-		using Bun::Strings::String;
+		Info,
+		Warning,
+		Error,
+	};
 
-		class LexerException : public Exception
-		{
-		private:
-			using Super = Exception;
-		public:
-			~LexerException() noexcept override = default;
-			LexerException() : Super("Bun::Lexing::LexerException") {}
-			LexerException(char const* msg) : Super(msg) {}
-			LexerException(std::string const& msg) : Super(msg) {}
-		};
+	class LexerException : public Exception
+	{
+	private:
+		using Super = Exception;
+	public:
+		~LexerException() noexcept override = default;
+		LexerException() : Super("Bun::LexerException") {}
+		LexerException(char const* msg) : Super(msg) {}
+		LexerException(std::string const& msg) : Super(msg) {}
+	};
 
-		struct Location
-		{
-			size_t line{};
-			size_t column{};
-			size_t position{};
-		};
+	struct LocationInFile
+	{
+		size_t line{};
+		size_t column{};
+		size_t position{};
+		size_t length{};
+	};
 
-		enum class TokenType
-		{
-			Unknown,
-			Operator, // `/`
-			DecimalIntegerLiteral, // the 9's in `9999`
-			HexadecimalIntegerLiteral, // the F's in `0xFFFF`
-			OpenBrace,
-			CloseBrace,
-		};
+	enum class TokenType
+	{
+		Unknown,
+		Operator, // `/`
+		DecimalIntegerLiteral, // the 9's in `9999`
+		HexadecimalIntegerLiteral, // the F's in `0xFFFF`
+		OpenBrace,
+		CloseBrace,
+	};
 
-		struct Token
-		{
-			Location location{};
-			size_t length{};
-			Strings::String content{};
-			TokenType type{};
-		};
+	struct Token
+	{
+		LocationInFile location{};
+		String content{};
+		TokenType type{};
+	};
 
-		enum class Severity
+	namespace Lexer
+	{
+		struct Log
 		{
-			Info,
-			Warning,
-			Error,
-		};
-
-		struct LogMessage
-		{
+			LogSeverity severity{};
+			String message{};
+			LocationInFile location{};
 			Token token{};
-			Location location{};
-			Severity severity{};
-			Strings::String message{};
 		};
 
-		/*
-		//	Class that represents all the callback arguments provided to the lexer.
-		//	The virtual methods are sandbox methods used by the member function Lex.
-		*/
-		class Lexer
+		class ILogger
 		{
-			BUN_DECLARE_INTERFACE(Lexer);
+			BUN_DECLARE_INTERFACE(ILogger);
 		private:
-			// true if reader stream is at end of file
-			virtual bool VirtualEof() = 0;
-			// reader stream current char
-			virtual Strings::Char VirtualPeek() = 0;
-			// advance reader stream by one char
-			virtual void VirtualNext() = 0;
-
-			// logger handles a message being logged
-			virtual void VirtualLog(LogMessage log) = 0;
-			// lippincott function that returns a message about the current exception being handled
-			virtual Strings::String VirtualGetExceptionMessage();
-
-			// saves a finished token
-			virtual void VirtualSubmit(Token token) = 0;
-
+			virtual void virtualLog(Log log) = 0;
+			virtual void virtualCatastrophe() = 0;
+			virtual String virtualGetExceptionMessage() = 0;
 		public:
-			bool Eof() { return VirtualEof(); }
-			Char Peek() { return VirtualPeek(); }
-			void Next() { return VirtualNext(); }
-
-			void Log(LogMessage log) { return VirtualLog(std::move(log)); }
-			String GetExceptionMessage() { return VirtualGetExceptionMessage(); }
-
-			void Submit(Token token) { return VirtualSubmit(std::move(token)); }
-
-			void Lex(Location initialLocation = Location());
+			void log(Log log) noexcept;
+			void catastrophe() noexcept;
+			String getExceptionMessage();
 		};
+
+		class DefaultLogger final : public ILogger
+		{
+			BUN_INTERFACE_FINAL_DEFAULT(DefaultLogger);
+		public:
+			DefaultLogger() = default;
+		private:
+			void virtualLog(Log log) final;
+			void virtualCatastrophe() final;
+			String virtualGetExceptionMessage() final;
+		};
+
+		class IReader
+		{
+			BUN_DECLARE_INTERFACE(IReader);
+		private:
+			virtual bool virtualEof() const = 0;
+			virtual Char virtualPeek() const = 0;
+			virtual void virtualNext() = 0;
+		public:
+			bool eof() const { return virtualEof(); }
+			void next() { return virtualNext(); }
+			Char peek() const;
+		};
+
+		class IWriter
+		{
+			BUN_DECLARE_INTERFACE(IWriter);
+		private:
+			virtual void virtualSubmit(Token token) = 0;
+		public:
+			void submit(Token token) { return virtualSubmit(std::move(token)); }
+		};
+
+		struct Args
+		{
+			std::reference_wrapper<ILogger> logger;
+			std::reference_wrapper<IReader> reader;
+			std::reference_wrapper<IWriter> writer;
+			LocationInFile initialLocation = {};
+		};
+
+		void run(Args args);
 	}
 }

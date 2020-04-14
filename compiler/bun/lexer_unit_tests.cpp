@@ -8,57 +8,70 @@
 
 namespace BunUnitTests
 {
-	void UnitTestLexer1()
+	void unitTestLexer1()
 	{
 		using namespace Bun;
-		using namespace Bun::Lexing;
+		using namespace Bun::Lexer;
 
-		/*
-		//	This is how to use the lexer.
-		//	Provide the sandbox methods for the Lex function to use.
-		*/
-		class Lexer final : public Bun::Lexing::Lexer
+		class Reader final : public IReader
 		{
+			BUN_INTERFACE_FINAL_DEFAULT(Reader);
 		public:
-			~Lexer() noexcept final = default;
-			Lexer(
-				std::basic_istream<Char>& reader,
-				std::vector<LogMessage>& logs,
-				std::vector<Token>& tokens
-			)
-				: m_reader(reader)
-				, m_logs(logs)
-				, m_tokens(tokens)
-			{
-			}
-
+			using Stream = std::basic_istream<Char>;
+			Reader(Stream& stream) : m_stream(stream) {}
+			Stream& getStream() const { return m_stream.get(); }
 		private:
-			// Fields
-			std::reference_wrapper<std::basic_istream<Char>> m_reader;
-			std::reference_wrapper<std::vector<LogMessage>> m_logs;
-			std::reference_wrapper<std::vector<Token>> m_tokens;
-
-		private:
+			std::reference_wrapper<Stream> m_stream;
 			// Interface Methods
-			bool VirtualEof() final { return m_reader.get().eof(); }
-			Char VirtualPeek() final { return m_reader.get().peek(); }
-			void VirtualNext() final { m_reader.get().get(); }
+			bool virtualEof() const final { return getStream().eof(); }
+			Char virtualPeek() const final { return getStream().peek(); }
+			void virtualNext() final { getStream().ignore(); }
+		};
 
-			void VirtualLog(LogMessage log) final
-			{
-				assert(Severity::Error != log.severity);
-				assert(Severity::Warning != log.severity);
-				m_logs.get().push_back(std::move(log));
-			}
-
-			void VirtualSubmit(Token token) final
+		class Writer final : public IWriter
+		{
+			BUN_INTERFACE_FINAL_DEFAULT(Writer);
+		public:
+			using Stream = std::vector<Token>;
+			Writer(Stream& stream) : m_stream(stream) {}
+			Stream& getStream() const { return m_stream.get(); }
+		private:
+			std::reference_wrapper<Stream> m_stream;
+			// Interface Methods
+			void virtualSubmit(Token token) final
 			{
 				assert(TokenType::Unknown != token.type);
-				m_tokens.get().push_back(std::move(token));
+				getStream().push_back(std::move(token));
 			}
 		};
 
-		auto reader = std::basic_istringstream<Char>(u8R"___(
+		class Logger final : public ILogger
+		{
+			BUN_INTERFACE_FINAL_DEFAULT(Logger);
+		public:
+			using Stream = std::vector<Log>;
+			Logger(Stream& stream) : m_stream(stream) {}
+			Stream& getStream() const { return m_stream.get(); }
+		private:
+			std::reference_wrapper<Stream> m_stream;
+			// Interface Methods
+			void virtualLog(Log log) final
+			{
+				assert(LogSeverity::Error != log.severity);
+				assert(LogSeverity::Warning != log.severity);
+				getStream().push_back(std::move(log));
+			}
+			void virtualCatastrophe() final
+			{
+				assert(false);
+			}
+			String virtualGetExceptionMessage() final
+			{
+				return GetDefaultExceptionMessage();
+			}
+		};
+
+		auto sourceStream = std::basic_istringstream<Char>(u8R"___(
 512
 03
 	621
@@ -83,14 +96,19 @@ end*/
 /
 3)___");
 
-		auto logs = std::vector<LogMessage>();
+		auto logs = std::vector<Lexer::Log>();
 		auto tokens = std::vector<Token>();
 
-		Lexer(
-			reader,
-			logs,
-			tokens
-		).Lex();
+		{
+			auto logger = Logger(logs);
+			auto writer = Writer(tokens);
+			auto reader = Reader(sourceStream);
+			Lexer::run({
+				logger,
+				reader,
+				writer,
+				});
+		}
 
 		assert(logs.empty());
 

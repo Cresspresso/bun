@@ -2,5 +2,5 @@
 
 namespace BunUnitTests
 {
-	void UnitTestLexer1();
+	void unitTestLexer1();
 }

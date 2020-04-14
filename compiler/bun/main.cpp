@@ -6,7 +6,7 @@
 namespace
 {
 	template<class F>
-	void Run(F f)
+	void run(F f)
 	{
 		try
 		{
@@ -22,5 +22,5 @@ namespace
 int main()
 {
 	using namespace BunUnitTests;
-	Run(UnitTestLexer1);
+	run(unitTestLexer1);
 }

@@ -31,32 +31,106 @@ namespace Bun
 		}
 	}
 
-	namespace Lexing
+	String GetDefaultExceptionMessage()
 	{
-		String Lexer::VirtualGetExceptionMessage()
-		{
-			String message = u8"internal exception: ";
+		String message = u8"internal exception: ";
 
+		try
+		{
+			throw;
+		}
+		catch (Exception const& e)
+		{
+			message += u8"Lexing exception: ";
+			message += Strings::U8FromChar(e.what());
+		}
+		catch (std::exception const& e)
+		{
+			message += u8"unknown exception: ";
+			message += Strings::U8FromChar(e.what());
+		}
+		catch (...)
+		{
+			message += u8"unknown exception of unknown type";
+		}
+
+		return message;
+	}
+
+	namespace Lexer
+	{
+		namespace
+		{
+			constexpr char const* DefaultLogger_rootString = "Bun::Lexer::DefaultLogger";
+		}
+
+		void ILogger::log(Log log) noexcept
+		{
 			try
 			{
-				throw;
-			}
-			catch (Exception const& e)
-			{
-				message += u8"Lexing exception: ";
-				message += Strings::U8FromChar(e.what());
-			}
-			catch (std::exception const& e)
-			{
-				message += u8"unknown exception: ";
-				message += Strings::U8FromChar(e.what());
+				virtualLog(std::move(log));
 			}
 			catch (...)
 			{
-				message += u8"unknown exception of unknown type";
+				catastrophe();
 			}
+		}
 
-			return message;
+		void ILogger::catastrophe() noexcept
+		{
+			try
+			{
+				virtualCatastrophe();
+			}
+			catch (...)
+			{
+				// discard
+			}
+		}
+
+		String ILogger::getExceptionMessage()
+		{
+			return virtualGetExceptionMessage();
+		}
+
+		void DefaultLogger::virtualLog(Log log)
+		{
+			std::string const severity = [&]() -> char const* {
+				switch (log.severity)
+				{
+				default:
+				case LogSeverity::Error: return "Error";
+				case LogSeverity::Warning: return "Warning";
+				case LogSeverity::Info: return "i";
+				}
+			}();
+
+			std::string const message = Strings::CharFromU8(log.message);
+
+			fprintf_s(stdout, "%s: %s: %s.\n",
+				DefaultLogger_rootString,
+				severity.c_str(),
+				message.c_str());
+		}
+
+		void DefaultLogger::virtualCatastrophe()
+		{
+			fprintf_s(stderr, "%s: Error: Failed to log a message.\n",
+				DefaultLogger_rootString);
+		}
+
+		String DefaultLogger::virtualGetExceptionMessage()
+		{
+			return Bun::GetDefaultExceptionMessage();
+		}
+
+		Char IReader::peek() const
+		{
+			if (eof())
+			{
+				throw LexerException("unexpected end of file");
+			}
+			return virtualPeek();
 		}
 
 		namespace
@@ -104,138 +178,111 @@ namespace Bun
 				LexerImpl& operator=(LexerImpl&&) noexcept = delete;
 				LexerImpl(LexerImpl const&) = delete;
 				LexerImpl& operator=(LexerImpl const&) = delete;
-				LexerImpl(
-					Lexer& functionality,
-					Location initialLocation
-					)
+
+				LexerImpl(Lexer::Args& functionality)
 					: m_functionality(functionality)
-					, m_currentLocation(initialLocation)
+					, m_currentLocation(std::move(functionality.initialLocation))
 					, m_currentToken{
-						.location = initialLocation
-				}
+						.location = m_currentLocation
+					}
 				{
 				}
 
 			private:
-				std::reference_wrapper<Lexer> m_functionality;
-				Location m_currentLocation;
+				std::reference_wrapper<Lexer::Args> m_functionality;
+				LocationInFile m_currentLocation;
 				Token m_currentToken;
 				bool m_passedNewline = false;
 
 			private:
 				// METHODS
 
-				Lexer& GetFunctionality() { return m_functionality.get(); }
+				Lexer::Args& getFunctionality() { return m_functionality.get(); }
+				ILogger& getLogger() { return getFunctionality().logger.get(); }
+				IReader& getReader() { return getFunctionality().reader.get(); }
+				IWriter& getWriter() { return getFunctionality().writer.get(); }
 
-				void Log(LogMessage log)
+				String getExceptionMessage() { return getLogger().getExceptionMessage(); }
+				void catastrophe() noexcept { return getLogger().catastrophe(); }
+				void log(Log log) noexcept { getLogger().log(std::move(log)); }
+				void logError(String message)
+				{
+					log({
+						.severity = LogSeverity::Error,
+						.message = std::move(message),
+						.location = m_currentLocation,
+						.token = m_currentToken,
+						});
+				}
+				void logException(String messageRoot) noexcept
 				{
 					try
 					{
-						GetFunctionality().Log(std::move(log));
+						logError(messageRoot + u8" failed: " + getExceptionMessage());
 					}
 					catch (...)
 					{
-						fprintf_s(stderr, "Lexer failed to log a message.\n");
-
-						try
-						{
-							GetFunctionality().Log(LogMessage{
-								{},
-								{},
-								Severity::Error,
-								u8"catastrophy"
-								});
-						}
-						catch (...)
-						{
-							// discard
-						}
+						getLogger().catastrophe();
 					}
 				}
 
-				void LogError(String message)
+				void startToken()
 				{
-					Log(LogMessage{
-					m_currentToken,
-					m_currentLocation,
-					Severity::Error,
-					std::move(message)
-						});
+					m_currentLocation.length = 0;
+					m_currentToken = {
+						.location = m_currentLocation,
+						.content = {},
+						.type = {},
+					};
 				}
 
-				String GetExceptionMessage()
-				{
-					return GetFunctionality().GetExceptionMessage();
-				}
-
-
-
-				void StartToken()
-				{
-					m_currentToken.location = m_currentLocation;
-					m_currentToken.length = 0;
-					m_currentToken.content.clear();
-					m_currentToken.type = TokenType::Unknown;
-				}
-
-				void SubmitToken(TokenType type)
+				void submitToken(TokenType type)
 				{
 					m_currentToken.type = type;
 					try
 					{
-						GetFunctionality().Submit(m_currentToken);
+						getWriter().submit(m_currentToken);
 					}
 					catch (...)
 					{
-						LogError(u8"SubmitToken failed: " + GetExceptionMessage());
+						logException(u8"submitToken");
 					}
-					StartToken();
+					startToken();
 				}
 
 
 
-				void StartNewlineTerminatedSection()
+				void startNewlineTerminatedSection()
 				{
 					m_passedNewline = false;
 				}
 
-				bool PassedNewline() const
+				bool passedNewline() const
 				{
 					return m_passedNewline;
 				}
 
-				void SetPassedNewline()
+				void setPassedNewline()
 				{
 					m_passedNewline = true;
 				}
 
 
 
-				bool Eof()
-				{
-					return GetFunctionality().Eof();
-				}
+				bool eof() { return getReader().eof(); }
+				Char peek() { return getReader().peek(); }
 
-				Char Peek()
+				void discard()
 				{
-					if (Eof())
-					{
-						throw LexerException("unexpected end of file");
-					}
-					return GetFunctionality().Peek();
-				}
-
-				void Discard()
-				{
-					Char const c = Peek();
-					GetFunctionality().Next();
+					Char const c = peek();
+					getReader().next();
 
 					++m_currentLocation.position;
 					if (IsCharacter::Newline(c))
 					{
 						m_currentLocation.column = 0;
 						++m_currentLocation.line;
-						SetPassedNewline();
+						setPassedNewline();
 					}
 					else
 					{
@@ -243,231 +290,232 @@ namespace Bun
 					}
 				}
 
-				void Eat()
+				void eat()
 				{
-					m_currentToken.content += Peek();
-					++m_currentToken.length;
-					Discard();
+					m_currentToken.content += peek();
+					++m_currentLocation.length;
+					discard();
 				}
 
-				void DiscardWhitespaceExcludingNewline()
+				void discardWhitespaceExcludingNewline()
 				{
-					while (!Eof() && IsCharacter::WhitespaceExcludingNewline(Peek()))
+					while (!eof() && IsCharacter::WhitespaceExcludingNewline(peek()))
 					{
-						Discard();
+						discard();
 					}
 				}
 
-				void DiscardNewline()
+				void discardNewline()
 				{
-					while (IsCharacter::Newline(Peek()))
+					while (IsCharacter::Newline(peek()))
 					{
-						Discard();
+						discard();
 					}
 				}
 
-				void DiscardWhitespaceIncludingNewlines()
+				void discardWhitespaceIncludingNewlines()
 				{
-					while (!Eof() && IsCharacter::WhitespaceIncludingNewline(Peek()))
+					while (!eof() && IsCharacter::WhitespaceIncludingNewline(peek()))
 					{
-						Discard();
+						discard();
 					}
 				}
 
-				void DiscardSingleLineComment()
+				void discardSingleLineComment()
 				{
-					while (!Eof() && !IsCharacter::Newline(Peek()))
+					while (!eof() && !IsCharacter::Newline(peek()))
 					{
-						Discard();
+						discard();
 					}
-					if (!Eof())
+					if (!eof())
 					{
-						assert(IsCharacter::Newline(Peek()));
-						DiscardWhitespaceIncludingNewlines();
+						assert(IsCharacter::Newline(peek()));
+						discardWhitespaceIncludingNewlines();
 					}
 				}
 
-				void DiscardMultiLineComment()
+				void discardMultiLineComment()
 				{
-					assert(IsCharacter::SpecifyMultiLineComment(Peek()));
-					Discard();
+					assert(IsCharacter::SpecifyMultiLineComment(peek()));
+					discard();
 
 					// discard until end of multi line comment block
 					while (true)
 					{
-						while (!IsCharacter::SpecifyMultiLineComment(Peek())
-							&& !IsCharacter::BranchCommentOrDivide(Peek()))
+						while (!IsCharacter::SpecifyMultiLineComment(peek())
+							&& !IsCharacter::BranchCommentOrDivide(peek()))
 						{
-							Discard();
+							discard();
 						}
 
-						if (IsCharacter::SpecifyMultiLineComment(Peek()))
+						if (IsCharacter::SpecifyMultiLineComment(peek()))
 						{
 							// could be the end of the block
-							Discard();
-							if (IsCharacter::BranchCommentOrDivide(Peek()))
+							discard();
+							if (IsCharacter::BranchCommentOrDivide(peek()))
 							{
 								// it is the end of the block
-								Discard();
+								discard();
 								break;
 							}
 						}
 						else
 						{
-							assert(IsCharacter::BranchCommentOrDivide(Peek()));
+							assert(IsCharacter::BranchCommentOrDivide(peek()));
 							// could be a nested multi line comment
-							Eat();
-							if (IsCharacter::SpecifyMultiLineComment(Peek()))
+							eat();
+							if (IsCharacter::SpecifyMultiLineComment(peek()))
 							{
 								// it is a nested multi line comment
-								DiscardMultiLineComment();
+								discardMultiLineComment();
 							}
 						}
 						// continue discarding for this multi line comment
 					}
 				}
 
-				void BranchCommentOrDivide()
+				void branchCommentOrDivide()
 				{
-					assert(IsCharacter::BranchCommentOrDivide(Peek()));
-					StartToken();
-					Eat();
-					if (IsCharacter::SpecifySingleLineComment(Peek()))
+					assert(IsCharacter::BranchCommentOrDivide(peek()));
+					startToken();
+					eat();
+					if (IsCharacter::SpecifySingleLineComment(peek()))
 					{
-						DiscardSingleLineComment();
+						discardSingleLineComment();
 					}
-					else if (IsCharacter::SpecifyMultiLineComment(Peek()))
+					else if (IsCharacter::SpecifyMultiLineComment(peek()))
 					{
-						DiscardMultiLineComment();
+						discardMultiLineComment();
 					}
 					else
 					{
-						SubmitToken(TokenType::Operator);
+						submitToken(TokenType::Operator);
 					}
 				}
 
-				void EatRestOfDecimal()
+				void eatRestOfDecimal()
 				{
-					while (!Eof() && IsCharacter::Decimal(Peek()))
+					while (!eof() && IsCharacter::Decimal(peek()))
 					{
-						Eat();
+						eat();
 					}
 				}
 
-				void BranchNumber()
+				void branchNumber()
 				{
-					assert(IsCharacter::Zero(Peek()));
-					StartToken();
-					Eat();
-					if (Eof())
+					assert(IsCharacter::Zero(peek()));
+					startToken();
+					eat();
+					if (eof())
 					{
-						SubmitToken(TokenType::DecimalIntegerLiteral);
+						submitToken(TokenType::DecimalIntegerLiteral);
 					}
 					else
 					{
-						if (IsCharacter::SpecifyHex(Peek()))
+						if (IsCharacter::SpecifyHex(peek()))
 						{
-							Eat();
-							if (Eof() || !IsCharacter::Hex(Peek()))
+							eat();
+							if (eof() || !IsCharacter::Hex(peek()))
 							{
-								LogError(u8"Expected hexadecimal integer literal after `0x`");
+								logError(u8"Expected hexadecimal integer literal after `0x`");
 							}
 							else
 							{
-								StartToken();
-								while (!Eof() && IsCharacter::Hex(Peek()))
+								startToken();
+								while (!eof() && IsCharacter::Hex(peek()))
 								{
-									Eat();
+									eat();
 								}
-								SubmitToken(TokenType::HexadecimalIntegerLiteral);
+								submitToken(TokenType::HexadecimalIntegerLiteral);
 							}
 						}
 						else
 						{
-							EatRestOfDecimal();
-							SubmitToken(TokenType::DecimalIntegerLiteral);
+							eatRestOfDecimal();
+							submitToken(TokenType::DecimalIntegerLiteral);
 						}
 					}
 				}
 
-				void BranchRoot()
+				void branchRoot()
 				{
-					assert(!Eof());
-					if (IsCharacter::Zero(Peek()))
+					assert(!eof());
+					if (IsCharacter::Zero(peek()))
 					{
-						BranchNumber();
-						DiscardWhitespaceIncludingNewlines();
+						branchNumber();
+						discardWhitespaceIncludingNewlines();
 					}
-					else if (IsCharacter::Decimal(Peek()))
+					else if (IsCharacter::Decimal(peek()))
 					{
-						StartToken();
-						EatRestOfDecimal();
-						SubmitToken(TokenType::DecimalIntegerLiteral);
-						DiscardWhitespaceIncludingNewlines();
+						startToken();
+						eatRestOfDecimal();
+						submitToken(TokenType::DecimalIntegerLiteral);
+						discardWhitespaceIncludingNewlines();
 					}
-					else if (IsCharacter::BranchCommentOrDivide(Peek()))
+					else if (IsCharacter::BranchCommentOrDivide(peek()))
 					{
-						BranchCommentOrDivide();
+						branchCommentOrDivide();
 					}
 					else
 					{
-						StartToken();
-						while (!Eof() && !IsCharacter::WhitespaceIncludingNewline(Peek()))
+						startToken();
+						while (!eof() && !IsCharacter::WhitespaceIncludingNewline(peek()))
 						{
-							Eat();
+							eat();
 						}
-						LogError(u8"unrecognized token");
-						SubmitToken(TokenType::Unknown);
+						logError(u8"unrecognized token");
+						submitToken(TokenType::Unknown);
 					}
-					DiscardWhitespaceIncludingNewlines();
+					discardWhitespaceIncludingNewlines();
 				}
 
 			public:
-				void Lex()
+				void run()
 				{
 					try
 					{
-						DiscardWhitespaceIncludingNewlines();
-						while (!Eof())
+						discardWhitespaceIncludingNewlines();
+						while (!eof())
 						{
 							try
 							{
-								BranchRoot();
+								branchRoot();
 							}
 							catch (...)
 							{
-								LogError(u8"BranchRoot failed: " + GetExceptionMessage());
+								logException(u8"branchRoot");
 							}
 						}
 					}
 					catch (...)
 					{
-						LogError(u8"Lex failed: " + GetExceptionMessage());
+						logException(u8"run");
 					}
 				}
 			};
 		}
 
-		void Lexer::Lex(Location initialLocation)
+		void run(Args args)
 		{
 			try
 			{
-				LexerImpl(*this, std::move(initialLocation)).Lex();
+				LexerImpl(args).run();
 			}
 			catch (...)
 			{
+				ILogger& logger = args.logger.get();
 				try
 				{
-					Log(LogMessage{
-						.token = {},
+					logger.log({
+						.severity = LogSeverity::Error,
+						.message = logger.getExceptionMessage(),
 						.location = {},
-						.severity = Severity::Error,
-						.message = GetExceptionMessage()
+						.token = {},
 						});
 				}
 				catch (...)
 				{
-					fprintf_s(stderr, "Lexer failed to log a message.\n");
+					logger.catastrophe();
 				}
 			}
 		}

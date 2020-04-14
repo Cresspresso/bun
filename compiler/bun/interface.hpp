@@ -34,3 +34,11 @@ public:
 		Name(Name const&) = default;\
 		Name& operator=(Name const&) = default;\
 		Name() = default\
+
+#define BUN_INTERFACE_FINAL_DEFAULT(Name)\
+	public:\
+		~Name() noexcept final = default;\
+		Name(Name&&) noexcept = default;\
+		Name& operator=(Name&&) noexcept = default;\
+		Name(Name const&) = default;\
+		Name& operator=(Name const&) = default\
