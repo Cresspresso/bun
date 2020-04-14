@@ -22,34 +22,34 @@ Reads UTF-8 characters from a stream and transforms them to a sequence of tokens
 #include <string>
 #include <stdexcept>
 
+#include "interface.hpp"
+
 namespace Bun
 {
-	namespace Common
+	namespace Strings
 	{
 		using Char = char8_t;
 		using String = std::u8string;
 
-		namespace StringConversion
-		{
-			std::string CharFromU8(String input);
-			String U8FromChar(std::string input);
-		}
-
-		class Exception : public std::runtime_error
-		{
-		private:
-			using Super = std::runtime_error;
-		public:
-			~Exception() noexcept override = default;
-			Exception() : Super("Bun::Exception") {}
-			Exception(char const* msg) : Super(msg) {}
-			Exception(std::string const& msg) : Super(msg) {}
-		};
+		std::string CharFromU8(Strings::String const& input);
+		Strings::String U8FromChar(std::string const& input);
 	}
+
+	class Exception : public std::runtime_error
+	{
+	private:
+		using Super = std::runtime_error;
+	public:
+		~Exception() noexcept override = default;
+		Exception() : Super("Bun::Exception") {}
+		Exception(char const* msg) : Super(msg) {}
+		Exception(std::string const& msg) : Super(msg) {}
+	};
 
 	namespace Lexing
 	{
-		using namespace Bun::Common;
+		using Bun::Strings::Char;
+		using Bun::Strings::String;
 
 		class LexerException : public Exception
 		{
@@ -83,7 +83,7 @@ namespace Bun
 		{
 			Location location{};
 			size_t length{};
-			String content{};
+			Strings::String content{};
 			TokenType type{};
 		};
 
@@ -99,7 +99,7 @@ namespace Bun
 			Token token{};
 			Location location{};
 			Severity severity{};
-			String message{};
+			Strings::String message{};
 		};
 
 		/*
@@ -113,14 +113,14 @@ namespace Bun
 			// true if reader stream is at end of file
 			virtual bool VirtualEof() = 0;
 			// reader stream current char
-			virtual Char VirtualPeek() = 0;
+			virtual Strings::Char VirtualPeek() = 0;
 			// advance reader stream by one char
 			virtual void VirtualNext() = 0;
 
 			// logger handles a message being logged
 			virtual void VirtualLog(LogMessage log) = 0;
 			// lippincott function that returns a message about the current exception being handled
-			virtual String VirtualGetExceptionMessage();
+			virtual Strings::String VirtualGetExceptionMessage();
 
 			// saves a finished token
 			virtual void VirtualSubmit(Token token) = 0;

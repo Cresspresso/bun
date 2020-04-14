@@ -8,31 +8,31 @@
 
 namespace Bun
 {
-	namespace Lexing
+	namespace Strings
 	{
-		namespace StringConversion
+		std::string CharFromU8(String const& input)
 		{
-			std::string CharFromU8(String const& input)
+			std::string output;
+			for (Char const c : input)
 			{
-				std::string output;
-				for (Char const c : input)
-				{
-					output.push_back((char)c);
-				}
-				return output;
+				output.push_back((char)c);
 			}
-
-			String U8FromChar(std::string const& input)
-			{
-				String output;
-				for (char const c : input)
-				{
-					output.push_back((Char)c);
-				}
-				return output;
-			}
+			return output;
 		}
 
+		String U8FromChar(std::string const& input)
+		{
+			String output;
+			for (char const c : input)
+			{
+				output.push_back((Char)c);
+			}
+			return output;
+		}
+	}
+
+	namespace Lexing
+	{
 		String Lexer::VirtualGetExceptionMessage()
 		{
 			String message = u8"internal exception: ";
@@ -44,12 +44,12 @@ namespace Bun
 			catch (Exception const& e)
 			{
 				message += u8"Lexing exception: ";
-				message += StringConversion::U8FromChar(e.what());
+				message += Strings::U8FromChar(e.what());
 			}
 			catch (std::exception const& e)
 			{
 				message += u8"unknown exception: ";
-				message += StringConversion::U8FromChar(e.what());
+				message += Strings::U8FromChar(e.what());
 			}
 			catch (...)
 			{
