@@ -9,6 +9,8 @@ Elijah Shadbolt
 - all multiplicative data types can access the data fields by subscript index.
 	- in the context of a multiplicative data type, a field (subscript index) can be given an alias name.
 - in the context of an additive data type, a field (union index) can be given an alias name.
+- a function parameter list is just a multiplicative data type (struct).
+- C++ would benefit from a way to explicitly specify function parameters by name, for verbosity at the call site, for the case of a constructor storing references without having to do null checks.
 
 ## For Loops
 ```cpp
