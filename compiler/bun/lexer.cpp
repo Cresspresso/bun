@@ -4,7 +4,7 @@
 #include <memory>
 #include <cassert>
 
-#include "lexer.h"
+#include "lexer.hpp"
 
 namespace Bun
 {
@@ -12,7 +12,7 @@ namespace Bun
 	{
 		namespace StringConversion
 		{
-			std::string CharFromU8(String input)
+			std::string CharFromU8(String const& input)
 			{
 				std::string output;
 				for (Char const c : input)
@@ -22,7 +22,7 @@ namespace Bun
 				return output;
 			}
 
-			String U8FromChar(std::string input)
+			String U8FromChar(std::string const& input)
 			{
 				String output;
 				for (char const c : input)

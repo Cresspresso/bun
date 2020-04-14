@@ -1,7 +1,7 @@
 #pragma once
 /*md
 
-# lexer.h
+# lexer.hpp
 
 Elijah Shadbolt
 
@@ -102,22 +102,13 @@ namespace Bun
 			String message{};
 		};
 
-#define CRESS_LOGGING_DECLARE_INTERFACE(Name)\
-	public: virtual ~Name() noexcept = default;\
-	protected:\
-		Name(Name&&) noexcept = default;\
-		Name& operator=(Name&&) noexcept = default;\
-		Name(Name const&) = default;\
-		Name& operator=(Name const&) = default;\
-		Name() = default\
-
 		/*
 		//	Class that represents all the callback arguments provided to the lexer.
 		//	The virtual methods are sandbox methods used by the member function Lex.
 		*/
 		class Lexer
 		{
-			CRESS_LOGGING_DECLARE_INTERFACE(Lexer);
+			BUN_DECLARE_INTERFACE(Lexer);
 		private:
 			// true if reader stream is at end of file
 			virtual bool VirtualEof() = 0;

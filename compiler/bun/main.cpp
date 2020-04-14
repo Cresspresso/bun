@@ -4,7 +4,7 @@
 #include <vector>
 #include <cassert>
 
-#include "lexer.h"
+#include "lexer.hpp"
 
 void UnitTest1()
 {
