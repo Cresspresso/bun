@@ -6,9 +6,11 @@
 
 #include "lexer.hpp"
 
+#include "lexer_tests.hpp"
+
 namespace BunUnitTests
 {
-	void unitTestLexer1()
+	void testLexer1()
 	{
 		using namespace Bun;
 		using namespace Bun::Lexer;
@@ -17,14 +19,14 @@ namespace BunUnitTests
 		{
 			BUN_INTERFACE_FINAL_DEFAULT(Reader);
 		public:
-			using Stream = std::basic_istream<Char>;
+			using Stream = std::basic_istream<BunChar>;
 			Reader(Stream& stream) : m_stream(stream) {}
 			Stream& getStream() const { return m_stream.get(); }
 		private:
 			std::reference_wrapper<Stream> m_stream;
 			// Interface Methods
 			bool virtualEof() const final { return getStream().eof(); }
-			Char virtualPeek() const final { return getStream().peek(); }
+			BunChar virtualPeek() const final { return getStream().peek(); }
 			void virtualNext() final { getStream().ignore(); }
 		};
 
@@ -65,13 +67,13 @@ namespace BunUnitTests
 			{
 				assert(false);
 			}
-			String virtualGetExceptionMessage() final
+			BunString virtualGetExceptionMessage() final
 			{
-				return GetDefaultExceptionMessage();
+				return getDefaultExceptionMessage();
 			}
 		};
 
-		auto sourceStream = std::basic_istringstream<Char>(u8R"___(
+		auto sourceStream = std::basic_istringstream<BunChar>(u8R"___(
 512
 03
 	621

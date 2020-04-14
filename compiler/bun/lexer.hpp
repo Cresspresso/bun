@@ -27,13 +27,13 @@ Reads UTF-8 characters from a stream and transforms them to a sequence of tokens
 
 namespace Bun
 {
-	using Char = char8_t;
-	using String = std::u8string;
+	using BunChar = char8_t;
+	using BunString = std::u8string;
 
 	namespace Strings
 	{
-		std::string CharFromU8(String const& input);
-		String U8FromChar(std::string const& input);
+		std::string charFromBun(BunString const& input);
+		BunString bunFromChar(std::string const& input);
 	}
 
 	class Exception : public std::runtime_error
@@ -47,7 +47,7 @@ namespace Bun
 		Exception(std::string const& msg) : Super(msg) {}
 	};
 
-	String GetDefaultExceptionMessage();
+	BunString getDefaultExceptionMessage();
 
 	enum class LogSeverity
 	{
@@ -88,7 +88,7 @@ namespace Bun
 	struct Token
 	{
 		LocationInFile location{};
-		String content{};
+		BunString content{};
 		TokenType type{};
 	};
 
@@ -97,7 +97,7 @@ namespace Bun
 		struct Log
 		{
 			LogSeverity severity{};
-			String message{};
+			BunString message{};
 			LocationInFile location{};
 			Token token{};
 		};
@@ -108,11 +108,11 @@ namespace Bun
 		private:
 			virtual void virtualLog(Log log) = 0;
 			virtual void virtualCatastrophe() = 0;
-			virtual String virtualGetExceptionMessage() = 0;
+			virtual BunString virtualGetExceptionMessage() = 0;
 		public:
 			void log(Log log) noexcept;
 			void catastrophe() noexcept;
-			String getExceptionMessage();
+			BunString getExceptionMessage();
 		};
 
 		class DefaultLogger final : public ILogger
@@ -123,7 +123,7 @@ namespace Bun
 		private:
 			void virtualLog(Log log) final;
 			void virtualCatastrophe() final;
-			String virtualGetExceptionMessage() final;
+			BunString virtualGetExceptionMessage() final;
 		};
 
 		class IReader
@@ -131,12 +131,12 @@ namespace Bun
 			BUN_DECLARE_INTERFACE(IReader);
 		private:
 			virtual bool virtualEof() const = 0;
-			virtual Char virtualPeek() const = 0;
+			virtual BunChar virtualPeek() const = 0;
 			virtual void virtualNext() = 0;
 		public:
 			bool eof() const { return virtualEof(); }
 			void next() { return virtualNext(); }
-			Char peek() const;
+			BunChar peek() const;
 		};
 
 		class IWriter

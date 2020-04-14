@@ -1,7 +1,8 @@
 
 #include <cassert>
 
-#include "lexer_unit_tests.hpp"
+#include "lexer_tests.hpp"
+#include "pipeline_tests.hpp"
 
 namespace
 {
@@ -22,5 +23,6 @@ namespace
 int main()
 {
 	using namespace BunUnitTests;
-	run(unitTestLexer1);
+	run(testLexer1);
+	run(testPipeline1);
 }

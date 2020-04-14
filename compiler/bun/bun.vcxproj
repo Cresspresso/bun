@@ -143,15 +143,26 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="lexer.cpp" />
-    <ClCompile Include="lexer_unit_tests.cpp" />
+    <ClCompile Include="lexer_tests.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="parser.cpp" />
+    <ClCompile Include="pipeline_tests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="interface.hpp" />
     <ClInclude Include="lexer.hpp" />
-    <ClInclude Include="lexer_unit_tests.hpp" />
+    <ClInclude Include="lexer_tests.hpp" />
     <ClInclude Include="parser.hpp" />
+    <ClInclude Include="pipeline_tests.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="pipeline1expected.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="pipeline1input.bun" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -10,30 +10,30 @@ namespace Bun
 {
 	namespace Strings
 	{
-		std::string CharFromU8(String const& input)
+		std::string charFromBun(BunString const& input)
 		{
 			std::string output;
-			for (Char const c : input)
+			for (BunChar const c : input)
 			{
 				output.push_back((char)c);
 			}
 			return output;
 		}
 
-		String U8FromChar(std::string const& input)
+		BunString bunFromChar(std::string const& input)
 		{
-			String output;
+			BunString output;
 			for (char const c : input)
 			{
-				output.push_back((Char)c);
+				output.push_back((BunChar)c);
 			}
 			return output;
 		}
 	}
 
-	String GetDefaultExceptionMessage()
+	BunString getDefaultExceptionMessage()
 	{
-		String message = u8"internal exception: ";
+		BunString message = u8"internal exception: ";
 
 		try
 		{
@@ -42,12 +42,12 @@ namespace Bun
 		catch (Exception const& e)
 		{
 			message += u8"Lexing exception: ";
-			message += Strings::U8FromChar(e.what());
+			message += Strings::bunFromChar(e.what());
 		}
 		catch (std::exception const& e)
 		{
 			message += u8"unknown exception: ";
-			message += Strings::U8FromChar(e.what());
+			message += Strings::bunFromChar(e.what());
 		}
 		catch (...)
 		{
@@ -88,7 +88,7 @@ namespace Bun
 			}
 		}
 
-		String ILogger::getExceptionMessage()
+		BunString ILogger::getExceptionMessage()
 		{
 			return virtualGetExceptionMessage();
 		}
@@ -105,7 +105,7 @@ namespace Bun
 				}
 			}();
 
-			std::string const message = Strings::CharFromU8(log.message);
+			std::string const message = Strings::charFromBun(log.message);
 
 			fprintf_s(stdout, "%s: %s: %s.\n",
 				DefaultLogger_rootString,
@@ -119,12 +119,12 @@ namespace Bun
 				DefaultLogger_rootString);
 		}
 
-		String DefaultLogger::virtualGetExceptionMessage()
+		BunString DefaultLogger::virtualGetExceptionMessage()
 		{
-			return Bun::GetDefaultExceptionMessage();
+			return Bun::getDefaultExceptionMessage();
 		}
 
-		Char IReader::peek() const
+		BunChar IReader::peek() const
 		{
 			if (eof())
 			{
@@ -137,8 +137,8 @@ namespace Bun
 		{
 			struct IsCharacterTools
 			{
-				static inline bool AnyOf(Char const c, std::u8string_view const s) { return s.npos != s.find(c); }
-				static inline bool InClosedInterval(Char const c, Char const low, Char const hi) { return c >= low && c <= hi; }
+				static inline bool AnyOf(BunChar const c, std::u8string_view const s) { return s.npos != s.find(c); }
+				static inline bool InClosedInterval(BunChar const c, BunChar const low, BunChar const hi) { return c >= low && c <= hi; }
 			};
 
 			struct IsCharacter : public IsCharacterTools
@@ -147,27 +147,27 @@ namespace Bun
 				using Super::InClosedInterval;
 				using Super::AnyOf;
 
-				static inline bool Lowercase(Char const c) { return InClosedInterval(c, u8'a', u8'z'); }
-				static inline bool Uppercase(Char const c) { return InClosedInterval(c, u8'A', u8'Z'); }
+				static inline bool Lowercase(BunChar const c) { return InClosedInterval(c, u8'a', u8'z'); }
+				static inline bool Uppercase(BunChar const c) { return InClosedInterval(c, u8'A', u8'Z'); }
 
-				static inline bool Decimal(Char const c) { return InClosedInterval(c, u8'0', u8'9'); }
-				static inline bool Zero(Char const c) { return u8'0' == c; }
-				static inline bool HighHex(Char const c) { return InClosedInterval(c, u8'a', u8'f') || InClosedInterval(c, u8'A', u8'F'); }
-				static inline bool Hex(Char const c) { return Decimal(c) || HighHex(c); }
-				static inline bool SpecifyHex(Char const c) { return AnyOf(c, u8"xX"); }
-				static inline bool NumberWhitespace(Char const c) { return u8'_' == c; }
-				static inline bool NumberFractionSeparator(Char const c) { return u8'.' == c; }
+				static inline bool Decimal(BunChar const c) { return InClosedInterval(c, u8'0', u8'9'); }
+				static inline bool Zero(BunChar const c) { return u8'0' == c; }
+				static inline bool HighHex(BunChar const c) { return InClosedInterval(c, u8'a', u8'f') || InClosedInterval(c, u8'A', u8'F'); }
+				static inline bool Hex(BunChar const c) { return Decimal(c) || HighHex(c); }
+				static inline bool SpecifyHex(BunChar const c) { return AnyOf(c, u8"xX"); }
+				static inline bool NumberWhitespace(BunChar const c) { return u8'_' == c; }
+				static inline bool NumberFractionSeparator(BunChar const c) { return u8'.' == c; }
 
-				static inline bool WhitespaceExcludingNewline(Char const c) { return AnyOf(c, u8" \t\v"); }
-				static inline bool Newline(Char const c) { return AnyOf(c, u8"\n\r;"); }
-				static inline bool WhitespaceIncludingNewline(Char const c) { return WhitespaceExcludingNewline(c) || Newline(c); }
+				static inline bool WhitespaceExcludingNewline(BunChar const c) { return AnyOf(c, u8" \t\v"); }
+				static inline bool Newline(BunChar const c) { return AnyOf(c, u8"\n\r;"); }
+				static inline bool WhitespaceIncludingNewline(BunChar const c) { return WhitespaceExcludingNewline(c) || Newline(c); }
 
-				static inline bool OpenBrace(Char const c) { return u8'{' == c; }
-				static inline bool CloseBrace(Char const c) { return u8'}' == c; }
+				static inline bool OpenBrace(BunChar const c) { return u8'{' == c; }
+				static inline bool CloseBrace(BunChar const c) { return u8'}' == c; }
 
-				static inline bool BranchCommentOrDivide(Char const c) { return u8'/' == c; }
-				static inline bool SpecifyMultiLineComment(Char const c) { return u8'*' == c; }
-				static inline bool SpecifySingleLineComment(Char const c) { return u8'/' == c; }
+				static inline bool BranchCommentOrDivide(BunChar const c) { return u8'/' == c; }
+				static inline bool SpecifyMultiLineComment(BunChar const c) { return u8'*' == c; }
+				static inline bool SpecifySingleLineComment(BunChar const c) { return u8'/' == c; }
 			};
 
 			class LexerImpl
@@ -202,10 +202,10 @@ namespace Bun
 				IReader& getReader() { return getFunctionality().reader.get(); }
 				IWriter& getWriter() { return getFunctionality().writer.get(); }
 
-				String getExceptionMessage() { return getLogger().getExceptionMessage(); }
+				BunString getExceptionMessage() { return getLogger().getExceptionMessage(); }
 				void catastrophe() noexcept { return getLogger().catastrophe(); }
 				void log(Log log) noexcept { getLogger().log(std::move(log)); }
-				void logError(String message)
+				void logError(BunString message)
 				{
 					log({
 						.severity = LogSeverity::Error,
@@ -214,7 +214,7 @@ namespace Bun
 						.token = m_currentToken,
 						});
 				}
-				void logException(String messageRoot) noexcept
+				void logException(BunString messageRoot) noexcept
 				{
 					try
 					{
@@ -270,11 +270,11 @@ namespace Bun
 
 
 				bool eof() { return getReader().eof(); }
-				Char peek() { return getReader().peek(); }
+				BunChar peek() { return getReader().peek(); }
 
 				void discard()
 				{
-					Char const c = peek();
+					BunChar const c = peek();
 					getReader().next();
 
 					++m_currentLocation.position;

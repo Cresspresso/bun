@@ -1,0 +1,5 @@
+
+main_program_entry_point
+{
+	print("hello world");
+}
