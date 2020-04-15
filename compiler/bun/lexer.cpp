@@ -3,6 +3,7 @@
 #include <string_view>
 #include <memory>
 #include <cassert>
+#include <set>
 
 #include "lexer.hpp"
 
@@ -33,7 +34,7 @@ namespace Bun
 
 	BunString getDefaultExceptionMessage()
 	{
-		BunString message = u8"internal exception: ";
+		BunString message = "internal exception: ";
 
 		try
 		{
@@ -41,17 +42,17 @@ namespace Bun
 		}
 		catch (Exception const& e)
 		{
-			message += u8"Lexing exception: ";
+			message += "Lexing exception: ";
 			message += Strings::bunFromChar(e.what());
 		}
 		catch (std::exception const& e)
 		{
-			message += u8"unknown exception: ";
+			message += "unknown exception: ";
 			message += Strings::bunFromChar(e.what());
 		}
 		catch (...)
 		{
-			message += u8"unknown exception of unknown type";
+			message += "unknown exception of unknown type";
 		}
 
 		return message;
@@ -126,6 +127,7 @@ namespace Bun
 
 		BunChar IReader::peek() const
 		{
+			assert(!eof());
 			if (eof())
 			{
 				throw LexerException("unexpected end of file");
@@ -137,7 +139,7 @@ namespace Bun
 		{
 			struct IsCharacterTools
 			{
-				static inline bool AnyOf(BunChar const c, std::u8string_view const s) { return s.npos != s.find(c); }
+				static inline bool AnyOf(BunChar const c, std::string_view const s) { return s.npos != s.find(c); }
 				static inline bool InClosedInterval(BunChar const c, BunChar const low, BunChar const hi) { return c >= low && c <= hi; }
 			};
 
@@ -147,27 +149,33 @@ namespace Bun
 				using Super::InClosedInterval;
 				using Super::AnyOf;
 
-				static inline bool Lowercase(BunChar const c) { return InClosedInterval(c, u8'a', u8'z'); }
-				static inline bool Uppercase(BunChar const c) { return InClosedInterval(c, u8'A', u8'Z'); }
+				static inline bool LowercaseAscii(BunChar const c) { return InClosedInterval(c, 'a', 'z'); }
+				static inline bool UppercaseAscii(BunChar const c) { return InClosedInterval(c, 'A', 'Z'); }
 
-				static inline bool Decimal(BunChar const c) { return InClosedInterval(c, u8'0', u8'9'); }
-				static inline bool Zero(BunChar const c) { return u8'0' == c; }
-				static inline bool HighHex(BunChar const c) { return InClosedInterval(c, u8'a', u8'f') || InClosedInterval(c, u8'A', u8'F'); }
+				static inline bool Decimal(BunChar const c) { return InClosedInterval(c, '0', '9'); }
+				static inline bool Zero(BunChar const c) { return '0' == c; }
+				static inline bool HighHex(BunChar const c) { return InClosedInterval(c, 'a', 'f') || InClosedInterval(c, 'A', 'F'); }
 				static inline bool Hex(BunChar const c) { return Decimal(c) || HighHex(c); }
-				static inline bool SpecifyHex(BunChar const c) { return AnyOf(c, u8"xX"); }
-				static inline bool NumberWhitespace(BunChar const c) { return u8'_' == c; }
-				static inline bool NumberFractionSeparator(BunChar const c) { return u8'.' == c; }
+				static inline bool SpecifyHex(BunChar const c) { return AnyOf(c, "xX"); }
+				static inline bool NumberWhitespace(BunChar const c) { return '_' == c; }
+				static inline bool NumberFractionSeparator(BunChar const c) { return '.' == c; }
 
-				static inline bool WhitespaceExcludingNewline(BunChar const c) { return AnyOf(c, u8" \t\v"); }
-				static inline bool Newline(BunChar const c) { return AnyOf(c, u8"\n\r;"); }
+				static inline bool WhitespaceExcludingNewline(BunChar const c) { return AnyOf(c, " \t\v"); }
+				static inline bool Newline(BunChar const c) { return AnyOf(c, "\n\r;"); }
 				static inline bool WhitespaceIncludingNewline(BunChar const c) { return WhitespaceExcludingNewline(c) || Newline(c); }
 
-				static inline bool OpenBrace(BunChar const c) { return u8'{' == c; }
-				static inline bool CloseBrace(BunChar const c) { return u8'}' == c; }
+				static inline bool OpenBrace(BunChar const c) { return '{' == c; }
+				static inline bool CloseBrace(BunChar const c) { return '}' == c; }
 
-				static inline bool BranchCommentOrDivide(BunChar const c) { return u8'/' == c; }
-				static inline bool SpecifyMultiLineComment(BunChar const c) { return u8'*' == c; }
-				static inline bool SpecifySingleLineComment(BunChar const c) { return u8'/' == c; }
+				static inline bool BranchCommentOrDivide(BunChar const c) { return '/' == c; }
+				static inline bool SpecifyMultiLineComment(BunChar const c) { return '*' == c; }
+				static inline bool SpecifySingleLineComment(BunChar const c) { return '/' == c; }
+
+				static inline bool identifierWhitespace(BunChar const c) { return '_' == c; }
+				static inline bool startIdentifier(BunChar const c) { return LowercaseAscii(c) || UppercaseAscii(c) || identifierWhitespace(c); }
+				static inline bool identifierTail(BunChar const c) { return startIdentifier(c) || Decimal(c); }
+
+				static inline bool stringLiteral(BunChar const c) { return c == '"'; }
 			};
 
 			class LexerImpl
@@ -186,6 +194,7 @@ namespace Bun
 						.location = m_currentLocation
 					}
 				{
+					nextEof();
 				}
 
 			private:
@@ -193,6 +202,8 @@ namespace Bun
 				LocationInFile m_currentLocation;
 				Token m_currentToken;
 				bool m_passedNewline = false;
+				bool m_eof{};
+				BunChar m_peek{};
 
 			private:
 				// METHODS
@@ -218,7 +229,7 @@ namespace Bun
 				{
 					try
 					{
-						logError(messageRoot + u8" failed: " + getExceptionMessage());
+						logError(messageRoot + " failed: " + getExceptionMessage());
 					}
 					catch (...)
 					{
@@ -245,7 +256,7 @@ namespace Bun
 					}
 					catch (...)
 					{
-						logException(u8"submitToken");
+						logException("submitToken");
 					}
 					startToken();
 				}
@@ -269,13 +280,28 @@ namespace Bun
 
 
 
-				bool eof() { return getReader().eof(); }
-				BunChar peek() { return getReader().peek(); }
+				bool eof() const { return m_eof; }
+				BunChar peek() const
+				{
+					assert(!eof());
+					if (eof())
+					{
+						throw LexerException("unexpected end of file");
+					}
+					return m_peek;
+				}
+
+				void nextEof()
+				{
+					m_eof = getReader().eof();
+					m_peek = m_eof ? '\0' : getReader().peek();
+				}
 
 				void discard()
 				{
 					BunChar const c = peek();
 					getReader().next();
+					nextEof();
 
 					++m_currentLocation.position;
 					if (IsCharacter::Newline(c))
@@ -390,6 +416,7 @@ namespace Bun
 					else
 					{
 						submitToken(TokenType::Operator);
+						discardWhitespaceIncludingNewlines();
 					}
 				}
 
@@ -417,7 +444,7 @@ namespace Bun
 							eat();
 							if (eof() || !IsCharacter::Hex(peek()))
 							{
-								logError(u8"Expected hexadecimal integer literal after `0x`");
+								logError("Expected hexadecimal integer literal after `0x`");
 							}
 							else
 							{
@@ -435,6 +462,57 @@ namespace Bun
 							submitToken(TokenType::DecimalIntegerLiteral);
 						}
 					}
+				}
+
+				TokenType determineKeywordOrIdentifier() const
+				{
+					static auto const keywords = std::set<BunString>
+					{
+						"main_program_entry_point",
+						"print",
+					};
+					if (keywords.find(m_currentToken.content) != keywords.end())
+					{
+						return TokenType::Keyword;
+					}
+					else
+					{
+						return TokenType::Identifier;
+					}
+				}
+
+				void identifier()
+				{
+					assert(IsCharacter::startIdentifier(peek()));
+					startToken();
+					eat();
+					if (eof())
+					{
+						submitToken(determineKeywordOrIdentifier());
+					}
+					else
+					{
+						while (!eof() && IsCharacter::identifierTail(peek()))
+						{
+							eat();
+						}
+						submitToken(determineKeywordOrIdentifier());
+					}
+					discardWhitespaceIncludingNewlines();
+				}
+
+				void stringLiteral()
+				{
+					assert(IsCharacter::stringLiteral(peek()));
+					eat();
+					startToken();
+					while (!IsCharacter::stringLiteral(peek()))
+					{
+						eat();
+					}
+					submitToken(TokenType::StringLiteral);
+					eat();
+					discardWhitespaceIncludingNewlines();
 				}
 
 				void branchRoot()
@@ -456,6 +534,25 @@ namespace Bun
 					{
 						branchCommentOrDivide();
 					}
+					else if (IsCharacter::startIdentifier(peek()))
+					{
+						identifier();
+					}
+					else if (IsCharacter::AnyOf(peek(), "{}[]():"))
+					{
+						eat();
+						submitToken(TokenType::Punctuation);
+						discardWhitespaceIncludingNewlines();
+					}
+					else if (peek() == ';')
+					{
+						eat();
+						submitToken(TokenType::StatementTerminator);
+					}
+					else if (IsCharacter::stringLiteral(peek()))
+					{
+						stringLiteral();
+					}
 					else
 					{
 						startToken();
@@ -463,7 +560,7 @@ namespace Bun
 						{
 							eat();
 						}
-						logError(u8"unrecognized token");
+						logError("unrecognized token");
 						submitToken(TokenType::Unknown);
 					}
 					discardWhitespaceIncludingNewlines();
@@ -483,13 +580,13 @@ namespace Bun
 							}
 							catch (...)
 							{
-								logException(u8"branchRoot");
+								logException("branchRoot");
 							}
 						}
 					}
 					catch (...)
 					{
-						logException(u8"run");
+						logException("run");
 					}
 				}
 			};

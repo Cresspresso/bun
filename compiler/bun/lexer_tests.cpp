@@ -19,15 +19,29 @@ namespace BunUnitTests
 		{
 			BUN_INTERFACE_FINAL_DEFAULT(Reader);
 		public:
-			using Stream = std::basic_istream<BunChar>;
-			Reader(Stream& stream) : m_stream(stream) {}
-			Stream& getStream() const { return m_stream.get(); }
+			Reader(BunString string) : m_string(std::move(string))
+			{
+				m_eof = m_string.empty();
+			}
 		private:
-			std::reference_wrapper<Stream> m_stream;
+			BunString m_string;
+			size_t m_position = 0;
+			bool m_eof = false;
+
 			// Interface Methods
-			bool virtualEof() const final { return getStream().eof(); }
-			BunChar virtualPeek() const final { return getStream().peek(); }
-			void virtualNext() final { getStream().ignore(); }
+			bool virtualEof() const final { return m_eof; }
+			BunChar virtualPeek() const final { return m_string[m_position]; }
+			void virtualNext() final
+			{
+				if (!m_eof)
+				{
+					++m_position;
+					if (m_string.length() == m_position)
+					{
+						m_eof = true;
+					}
+				}
+			}
 		};
 
 		class Writer final : public IWriter
@@ -73,7 +87,11 @@ namespace BunUnitTests
 			}
 		};
 
-		auto sourceStream = std::basic_istringstream<BunChar>(u8R"___(
+		auto logs = std::vector<Lexer::Log>();
+		auto tokens = std::vector<Token>();
+
+		{
+			auto reader = Reader(R"___(
 512
 03
 	621
@@ -98,13 +116,9 @@ end*/
 /
 3)___");
 
-		auto logs = std::vector<Lexer::Log>();
-		auto tokens = std::vector<Token>();
-
-		{
 			auto logger = Logger(logs);
 			auto writer = Writer(tokens);
-			auto reader = Reader(sourceStream);
+
 			Lexer::run({
 				logger,
 				reader,
@@ -123,63 +137,63 @@ end*/
 		};
 
 		assert(TokenType::DecimalIntegerLiteral == it->type);
-		assert(u8"512" == it->content);
+		assert("512" == it->content);
 
 		next();
 		assert(TokenType::DecimalIntegerLiteral == it->type);
-		assert(u8"03" == it->content);
+		assert("03" == it->content);
 
 		next();
 		assert(TokenType::DecimalIntegerLiteral == it->type);
-		assert(u8"621" == it->content);
+		assert("621" == it->content);
 
 		next();
 		assert(TokenType::DecimalIntegerLiteral == it->type);
-		assert(u8"0" == it->content);
+		assert("0" == it->content);
 
 		next();
 		assert(TokenType::DecimalIntegerLiteral == it->type);
-		assert(u8"1" == it->content);
+		assert("1" == it->content);
 
 		next();
 		assert(TokenType::DecimalIntegerLiteral == it->type);
-		assert(u8"2" == it->content);
+		assert("2" == it->content);
 
 		next();
 		assert(TokenType::HexadecimalIntegerLiteral == it->type);
-		assert(u8"0" == it->content);
+		assert("0" == it->content);
 
 		next();
 		assert(TokenType::HexadecimalIntegerLiteral == it->type);
-		assert(u8"FFF" == it->content);
+		assert("FFF" == it->content);
 
 		next();
 		assert(TokenType::HexadecimalIntegerLiteral == it->type);
-		assert(u8"a39" == it->content);
+		assert("a39" == it->content);
 
 		next();
 		assert(TokenType::HexadecimalIntegerLiteral == it->type);
-		assert(u8"34" == it->content);
+		assert("34" == it->content);
 
 		next();
 		assert(TokenType::DecimalIntegerLiteral == it->type);
-		assert(u8"32" == it->content);
+		assert("32" == it->content);
 
 		next();
 		assert(TokenType::DecimalIntegerLiteral == it->type);
-		assert(u8"91" == it->content);
+		assert("91" == it->content);
 
 		next();
 		assert(TokenType::DecimalIntegerLiteral == it->type);
-		assert(u8"4" == it->content);
+		assert("4" == it->content);
 
 		next();
 		assert(TokenType::Operator == it->type);
-		assert(u8"/" == it->content);
+		assert("/" == it->content);
 
 		next();
 		assert(TokenType::DecimalIntegerLiteral == it->type);
-		assert(u8"3" == it->content);
+		assert("3" == it->content);
 
 		++it;
 		assert(end == it);

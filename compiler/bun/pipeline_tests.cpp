@@ -24,14 +24,16 @@ namespace BunUnitTests
 			BUN_INTERFACE_FINAL_DEFAULT(Reader);
 		public:
 			using Stream = std::basic_istream<BunChar>;
-			Reader(Stream& stream) : m_stream(stream) {}
+			Reader(Stream& stream) : m_stream(stream) { virtualNext(); }
 			Stream& getStream() const { return m_stream.get(); }
 		private:
 			std::reference_wrapper<Stream> m_stream;
+			bool m_eof;
+			BunChar m_peek;
 			// Interface Methods
-			bool virtualEof() const final { return getStream().eof(); }
-			BunChar virtualPeek() const final { return getStream().peek(); }
-			void virtualNext() final { getStream().ignore(); }
+			bool virtualEof() const final { return m_eof; }
+			BunChar virtualPeek() const final { return m_peek; }
+			void virtualNext() final { m_eof = bool(getStream() >> m_peek); }
 		};
 
 		class Writer final : public IWriter
@@ -47,7 +49,6 @@ namespace BunUnitTests
 			void virtualSubmit(Token token) final
 			{
 				getStream().push_back(token);
-				assert(TokenType::Unknown != token.type);
 			}
 		};
 
@@ -55,13 +56,17 @@ namespace BunUnitTests
 		{
 			BUN_INTERFACE_FINAL_DEFAULT(Logger);
 		public:
-			Logger() = default;
+			Logger(std::string filename) : m_filename(filename) {}
 		private:
+			std::string m_filename;
+
 			void virtualLog(Log log) final
 			{
-				std::cerr << Strings::charFromBun(log.message) << "\n";
-				assert(LogSeverity::Error != log.severity);
-				assert(LogSeverity::Warning != log.severity);
+				std::cerr << m_filename << ":"
+					<< log.location.line << ":"
+					<< log.location.column << "  "
+					<< Strings::charFromBun(log.message) << ": `"
+					<< Strings::charFromBun(log.token.content) << "`\n";
 			}
 			void virtualCatastrophe() final
 			{
@@ -74,7 +79,7 @@ namespace BunUnitTests
 			}
 		};
 
-		void run(std::basic_istream<char8_t>& inputStream, std::basic_istream<char>& expectedOutputStream)
+		void run(std::string testname, std::basic_istream<BunChar>& inputStream, std::basic_istream<char>& expectedOutputStream)
 		{
 			assert(inputStream);
 			assert(expectedOutputStream);
@@ -84,12 +89,11 @@ namespace BunUnitTests
 			{
 				auto reader = Reader(inputStream);
 				auto writer = Writer(tokens);
-				auto logger = Logger();
+				auto logger = Logger(testname);
 				Lexer::run({ logger, reader, writer });
 			}
 
-			auto actual = std::ostringstream();
-			actual << R"__(
+			std::string actual = R"__(
 #include <cstdio>
 
 int main()
@@ -97,22 +101,21 @@ int main()
 	printf_s("hello world\n");
 }
 )__";
-
-			auto const expected = std::string(std::istreambuf_iterator<char>(expectedOutputStream), {});
-			assert(expected == actual.str());
+			using It = std::istreambuf_iterator<char>;
+			assert((std::equal(It(expectedOutputStream), It(), actual.begin(), actual.end())));
 		}
 	}
 
-	void testPipeline(std::basic_istream<char8_t>& inputStream, std::basic_istream<char>& expectedOutputStream)
+	void testPipeline(std::string testname, std::basic_istream<BunChar>& inputStream, std::basic_istream<char>& expectedOutputStream)
 	{
-		return TestPipeline::run(inputStream, expectedOutputStream);
+		return TestPipeline::run(testname, inputStream, expectedOutputStream);
 	}
 
 	void testPipeline(std::string inputFilename, std::string expectedOutputFilename)
 	{
-		auto inputStream = std::basic_ifstream<char8_t>(inputFilename);
+		auto inputStream = std::basic_ifstream<BunChar>(inputFilename);
 		auto expectedOutputStream = std::ifstream(expectedOutputFilename);
-		return testPipeline(inputStream, expectedOutputStream);
+		return testPipeline(inputFilename, inputStream, expectedOutputStream);
 	}
 
 	void testPipeline1() { return testPipeline("pipeline1input.bun", "pipeline1expected.cpp"); }

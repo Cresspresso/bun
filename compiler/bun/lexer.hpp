@@ -27,8 +27,8 @@ Reads UTF-8 characters from a stream and transforms them to a sequence of tokens
 
 namespace Bun
 {
-	using BunChar = char8_t;
-	using BunString = std::u8string;
+	using BunChar = char;
+	using BunString = std::string;
 
 	namespace Strings
 	{
@@ -81,8 +81,11 @@ namespace Bun
 		Operator, // `/`
 		DecimalIntegerLiteral, // the 9's in `9999`
 		HexadecimalIntegerLiteral, // the F's in `0xFFFF`
-		OpenBrace,
-		CloseBrace,
+		Identifier,
+		Keyword,
+		Punctuation,
+		StringLiteral,
+		StatementTerminator,
 	};
 
 	struct Token
