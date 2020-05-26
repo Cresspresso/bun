@@ -9,4 +9,4 @@ Hosted by [GitHub](https://github.com/).
 
 ## Links
 
-[First Post](./posts/2020-03-03-The-Beginning-of-Bun.md) • [All Posts](./posts.md) • [Latest Post](./posts/2020-04-14-Given-Cpp-Features.md)
+[First Post](./posts/2020-03-03-The-Beginning-of-Bun.md) • [All Posts](./posts.md) • [Latest Post](./posts/2020-05-27-Literature-References.md)

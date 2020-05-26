@@ -1,5 +1,5 @@
 
-[Previous](./2020-04-08-Software-Design-Pillars.md) • [All Posts](../posts.md) • ~~Next~~
+[Previous](./2020-04-08-Software-Design-Pillars.md) • [All Posts](../posts.md) • [Next](./2020-05-06-Writing-a-Paper.md)
 
 14 April 2020
 
