@@ -9,6 +9,9 @@ Elijah Shadbolt
 
 ## References I have viewed recently:
 
+- A Complete Guide to Programming in C++
+    - http://www.lmpt.univ-tours.fr/~volkov/C++.pdf
+
 - The Design of C++
     - https://youtu.be/69edOm889V4
     - Bjarne Stroustrup
@@ -49,6 +52,7 @@ Elijah Shadbolt
 
 - Clean Coders Hate What Happens to Your Code When You Use These Enterprise Programming Tricks
     - https://youtu.be/FyCYva9DhsI
+    - Import statements, make them broad for less code noise, not fragile, not individual classes.
 
 - "How To Design A Good API and Why it Matters"
     - Bloch, J. (2007).
