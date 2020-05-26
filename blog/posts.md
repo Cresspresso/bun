@@ -5,11 +5,16 @@
 
 # Posts
 
-[First Post](./posts/2020-03-03-The-Beginning-of-Bun.md) • [Latest Post](./posts/2020-04-14-Given-Cpp-Features.md)
+[First Post](./posts/2020-03-03-The-Beginning-of-Bun.md) • [Latest Post](./posts/2020-05-27-Literature-References.md)
 
 Latest posts are at the top.
 
 ## 2020
+
+### May
+
+- [Literature References](./posts/2020-05-27-Literature-References.md)
+- [Writing a Paper](./posts/2020-05-06-Writing-a-Paper.md)
 
 ### April
 
