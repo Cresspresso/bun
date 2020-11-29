@@ -1,7 +1,7 @@
 
 [Previous](./2020-04-14-Given-Cpp-Features.md) • [All Posts](../posts.md) • [Next](./2020-05-27-Literature-References.md)
 
-06 May 2020
+6 May 2020
 
 Elijah Shadbolt
 
